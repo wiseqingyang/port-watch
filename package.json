@@ -1,0 +1,85 @@
+{
+  "name": "@wiseqingyang/port-watch",
+  "version": "1.0.0",
+  "description": "Inspect local TCP listeners by project directory and stop selected processes on macOS and Linux.",
+  "type": "module",
+  "bin": {
+    "port-watch": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n 'server,client' -c 'cyan,magenta' 'pnpm run dev:server' 'pnpm run dev:frontend'",
+    "dev:server": "tsx watch src/bin.ts --dev --no-open",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "clean": "node --input-type=module -e \"import {rmSync} from 'node:fs'; rmSync('dist',{recursive:true,force:true})\"",
+    "build": "pnpm run clean && pnpm run build:frontend && pnpm run build:server",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:server": "node scripts/build.mjs",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit && pnpm --filter frontend exec tsc -b",
+    "lint": "pnpm --filter frontend lint",
+    "test": "tsx --test tests/*.test.ts",
+    "test:package": "node scripts/smoke-package.mjs",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run typecheck && pnpm run lint && pnpm test",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm test && pnpm run test:package"
+  },
+  "keywords": [
+    "port-manager",
+    "port-scanner",
+    "process-manager",
+    "localhost",
+    "vibe-coding",
+    "ai-agents",
+    "devtools",
+    "cli",
+    "dashboard",
+    "lsof"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^15.0.0",
+    "express": "^5.3.0",
+    "open": "^11.0.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.0",
+    "concurrently": "^10.0.6",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "packageManager": "pnpm@9.14.4",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiseqingyang/port-watch.git"
+  },
+  "homepage": "https://github.com/wiseqingyang/port-watch#readme",
+  "bugs": {
+    "url": "https://github.com/wiseqingyang/port-watch/issues"
+  },
+  "pnpm": {
+    "overrides": {
+      "body-parser": "^2.4.0"
+    }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

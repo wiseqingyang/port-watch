@@ -1,0 +1,20 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+frontend/dist
+*.tsbuildinfo
+*.tgz
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs & OS files
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*

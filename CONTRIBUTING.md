@@ -6,6 +6,8 @@ Issues and pull requests are welcome at [wiseqingyang/port-watch](https://github
 
 Use macOS or Linux, Node >=22.12.0, pnpm 9.14.4, and `lsof` / `ps` on PATH. Install dependencies with `pnpm install --frozen-lockfile`, then run `pnpm dev`. Open the private Vite URL printed by the backend. Never commit a session token.
 
+Detailed CLI behavior and the local API live in the [reference](docs/reference.md) ([中文](docs/reference.zh-CN.md)).
+
 ## Structure
 
 - `src/bin.ts`: executable entry, independent of the filename used by npm's symlink.
@@ -31,12 +33,19 @@ Classification must prioritize executable/module evidence over path substrings o
 
 Maintain both READMEs when behavior or prerequisites change. The frontend uses strict TypeScript; avoid duplicating shared API interfaces. Do not commit `dist`, `node_modules`, tsbuildinfo files, local logs, or environment files.
 
-## Release checklist
+## Releases
 
-1. Review changes and the changelog; set the intended version in `package.json` (the CLI reads it automatically).
-2. Confirm the declared platform/Node CI matrix is green and the official registry audit is clear.
-3. Run `pnpm check` from a clean checkout. Review the `npm pack --dry-run` file list. `prepack` builds fresh assets; `prepublishOnly` also checks types, lint, and tests.
-4. Confirm repository metadata, author email visibility, and documentation links. Preview screenshots using synthetic service data.
-5. Publish the reviewed version from the correct npm account. This repository does not automatically publish on push.
-6. Verify the released `npx @wiseqingyang/port-watch` from an unrelated directory and create the corresponding GitHub release.
+Releases run through [release.yml](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag runs the macOS/Linux CI matrix, publishes to npm with provenance, verifies the published CLI, and creates a GitHub release with generated notes.
 
+One-time npm setup: add a **GitHub Actions trusted publisher** for `@wiseqingyang/port-watch` with owner `wiseqingyang`, repository `port-watch`, and workflow filename `release.yml`. Leave the environment empty and allow direct publishing. No npm token is stored in GitHub.
+
+1. Set the version in `package.json`; the CLI and dashboard read it automatically.
+2. Run `pnpm check` and `pnpm audit --registry=https://registry.npmjs.org`. Review the package contents and use synthetic data in screenshots.
+3. Commit and push to `main`, then tag that commit and push the tag:
+
+   ```sh
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+The tag must match `package.json` and point to a commit on `main`. If a step fails, fix the cause and rerun only the failed jobs; never move a published tag or reuse an npm version.

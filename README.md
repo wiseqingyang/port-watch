@@ -1,137 +1,107 @@
 <div align="center">
 
-# PortWatch
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/public/brand/logo-dark.svg">
+  <img src="frontend/public/brand/logo-light.svg" alt="PortWatch" width="440">
+</picture>
 
-**A local TCP service dashboard for multi-project development.**
+# Who’s using port 3000?
 
-[English](./README.md) · [简体中文](./README.zh-CN.md) · [Contributing](./CONTRIBUTING.md)
+**And which port was that demo my agent built running on?**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D22.12.0-339933.svg)](https://nodejs.org/)
+Find what's using your port. Find your still-running demo.
+
+[English](./README.md) · [简体中文](./README.zh-CN.md)
+
+[![npm](https://img.shields.io/npm/v/@wiseqingyang/port-watch?color=28785c&label=npm)](https://www.npmjs.com/package/@wiseqingyang/port-watch) [![MIT](https://img.shields.io/badge/license-MIT-edaa56)](./LICENSE)
+
+[Get started](#get-started) · [Take a look](#a-little-order-for-your-open-projects) · [Share an idea](https://github.com/wiseqingyang/port-watch/issues)
 
 </div>
 
-PortWatch shows which visible TCP listening processes belong to which projects. Browse them in a directory tree or flat list, filter by framework or port, inspect resource usage, open project directories, and stop a selected process with confirmation.
+PortWatch was made for these two small frustrations. It groups the services running on your machine by project: search `3000` to see what's using it, or find a familiar project folder and follow its port link to pick up where you left off.
 
-## Requirements
+![PortWatch dark directory view showing six services across three demo projects](docs/images/overview-en.png)
 
-- **macOS or Linux**, with Node.js **22.12.0 or newer**.
-- `lsof` and `ps` available on `PATH`. macOS normally includes both. On Debian/Ubuntu, install `lsof` and `procps` (`sudo apt install lsof procps`).
-- A graphical desktop is needed only for opening a browser or file manager. Linux directory reveal uses `xdg-open` (usually provided by `xdg-utils`).
-- Source development uses **pnpm 9.14.4**, recorded in `packageManager`.
-
-Windows is not supported. Run PortWatch as your regular user, not with `sudo`; root-owned and other users' processes cannot be stopped through the dashboard.
+<p align="center"><sub>Real UI, fictional demo projects. English / 中文. Light / dark.</sub></p>
 
 ## Get started
 
-Run directly with npm:
+Run one command. Your browser opens the dashboard:
 
 ```sh
 npx @wiseqingyang/port-watch
-# or
+```
+
+You'll need **macOS or Linux** and [Node.js 22.12+](https://nodejs.org/). Windows isn't supported yet.
+
+<details>
+<summary>Keeping it around? Install the shortcut</summary>
+
+```sh
 npm install --global @wiseqingyang/port-watch
 port-watch
 ```
 
-Build from source:
+</details>
+
+<details>
+<summary>Missing tools on Linux / trouble downloading?</summary>
+
+Install the scanning tools on Debian / Ubuntu:
 
 ```sh
-git clone https://github.com/wiseqingyang/port-watch.git
-cd port-watch
-pnpm install --frozen-lockfile
-pnpm build
-pnpm start
+sudo apt install lsof procps
 ```
 
-To make the command available globally:
+If your registry mirror hasn't picked up the latest release, use the official registry:
 
 ```sh
-pnpm link --global
-port-watch
+npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch
 ```
 
-PortWatch prints and normally opens a **private session URL**. Use that complete URL to access the dashboard. It contains a fresh token for the current process; do not share it. The browser removes the token fragment from the address bar and keeps it in this tab's session storage. When PortWatch restarts, reopen the newly printed URL.
+</details>
 
-## Features and boundaries
+## A little order for your open projects
 
-- Directory tree and flat views, search, sorting, light/dark themes, and English/Chinese UI.
-- Heuristic recognition of common web frameworks, databases, developer tools, and AI services. Classification is a display aid, not a security decision.
-- Project detection searches up to 12 directories from the process CWD for `package.json`, `.git`, `go.mod`, `Cargo.toml`, `pyproject.toml`, `pom.xml`, `build.gradle`, `build.gradle.kts`, or `requirements.txt`.
-- CPU, memory, owner, uptime, ports, working directory, and a display command with common credential patterns redacted.
-- **Stop** sends `SIGTERM` to the selected process. If it remains alive, a separate confirmation offers **Force stop** (`SIGKILL`). There is no automatic escalation.
-- Only the selected process is stopped. Children and process groups are not terminated. A supervisor may restart the process; a shared port may remain open through another process.
-- **Automatic restart is unavailable.** An OS process listing cannot reliably reconstruct argument boundaries, environment variables, or a supervisor's startup configuration. Copying the displayed command does not produce a guaranteed restart command.
-- Only TCP listeners visible to the current user are scanned. UDP sockets, non-listening processes, and stdio-only MCP servers are not included. Some process details may be unavailable due to OS permissions.
+- **🔎 What's using my port?** Type `3000` to see the service, its project directory, and the command that started it.
+- **🗂️ Where did that demo go?** Search by project name or browse the folders. If it's still running, find its port and follow the link to open it again.
+- **⏹️ Clean up when you're done.** Stop a selected process with confirmation. If it needs a force stop, you'll be asked separately.
 
-Automatic refresh pauses while the page is hidden. Concurrent API reads share a short-lived scan, and system commands have timeouts. These measures reduce unnecessary work; no zero-power or sleep behavior guarantee is made.
+## A different view. A different mood.
 
-## CLI
+Prefer one tidy list? Switch to the flat view and sort by port, memory, or start time. Language and light/dark controls are always in the top-right corner.
 
-```text
-port-watch [options]
+![PortWatch light list view with ports, project directories, and resource usage side by side](docs/images/list-en.png)
 
--V, --version        Show package version
--p, --port <number>  Dashboard port, 1–65535 (default: 4999)
---host <address>     127.0.0.1 or ::1 (default: 127.0.0.1)
--l, --lang <locale>  zh or en (otherwise follow browser preference)
---no-open            Print the session URL without opening a browser
---dev                Use the local Vite dashboard; intended for source development
--h, --help           Show help
-```
+## Take a look before you stop it
 
-If a port is occupied, PortWatch tries up to 100 subsequent ports, within the valid range. Development mode uses fixed API port 4999 and dashboard port 5175 and fails clearly if they are occupied. Non-loopback bind addresses are rejected.
+Open a service to check its directory, startup command, and resource usage. Make sure it's the one you meant, then stop it.
 
-## Security and privacy
+<p align="center">
+  <img src="docs/images/detail-en.png" alt="Details for the demo notes-web service, with its port, memory, directory, and stop button" width="600">
+</p>
 
-All API endpoints require a per-start session token. Host and Origin checks restrict requests to the local dashboard; there is no wildcard CORS. Do not expose PortWatch through a reverse proxy, tunnel, or shared machine account. It is a local developer tool, not a remote administration service.
+## A few things to know
 
-PortWatch reads local process and project metadata and does not intentionally upload it or include telemetry. The dashboard can show usernames, hostname, paths, project names, and command arguments. Credential redaction is **best effort**; review screenshots and copied commands before sharing. Package installation and opening external links are separate network activities.
+- Missing a service? Turn off the **Dev / Agent** filter to see all visible TCP listeners.
+- Open the complete link printed in your terminal. After restarting PortWatch, use the new link. Keep that link and personal details in screenshots private.
+- Stop affects only the selected process. Child processes or tools that restart services may keep running.
+- Run locally as your regular user. No account to create. No telemetry.
 
-Protected process checks run in the backend. Stop requests are revalidated against the current PID, owner, and start time. These checks reduce stale-process mistakes but cannot eliminate the small OS-level race between validation and sending a POSIX signal.
+---
 
-## Local development
+<p align="center">
+  <img src="frontend/public/brand/mark.svg" alt="The PortWatch little lookout" width="56">
+  <br>
+  <b>For the projects you keep leaving open.</b>
+  <br>
+  A little tool with room for your ideas.
+</p>
 
-```sh
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Open the private `http://127.0.0.1:5175/…#token=…` URL printed by the **backend**, rather than the bare URL printed by Vite. Vite proxies `/api` to `127.0.0.1:4999`; it never receives a token embedded in its source files. Restarting the backend rotates the token.
-
-```sh
-pnpm typecheck       # Backend, tests, frontend app, and Vite configuration
-pnpm lint
-pnpm test            # Unit and isolated OS/API regression tests
-pnpm test:package    # Build, pack, install to a temporary prefix, test installed CLI
-pnpm check          # All of the above
-```
-
-The package test accesses the official npm registry and deletes its temporary installation afterward. Tests signal only dedicated fixture processes, never arbitrary existing services. The CI matrix covers macOS/Linux with Node 22.12.0 and Node 24.
-
-## Local API
-
-Pass `Authorization: Bearer <session-token>` on every request, including health checks. A token must be taken from the current CLI session, not hardcoded. Mutation endpoints accept JSON and reject compressed request bodies.
-
-| Method | Endpoint | Body / result |
-| --- | --- | --- |
-| GET | `/api/health` | Authenticated liveness check |
-| GET | `/api/services` | Visible TCP services and summary; commands are redacted before transmission |
-| POST | `/api/services/kill` | `{ "serviceId": "<id from latest scan>", "force": false }` |
-| POST | `/api/services/reveal` | `{ "targetPath": "/absolute/path" }`; must be a directory in the current service tree |
-
-The service ID binds a PID to its owner/start-time fingerprint. Arbitrary PID-only requests are rejected. Restart and batch-kill endpoints are not provided. A stop response's `code` is `STOPPED`, `ALREADY_EXITED`, or `STILL_RUNNING`; the last one has `success: false`. Errors use an HTTP error status and `{ "code", "error" }`.
-
-## Troubleshooting
-
-- **Session expired / unauthorized:** reopen the complete URL from the current terminal session. Each restart creates a new token.
-- **Missing tools / scan failure:** install `lsof` and `ps`; check your regular user's process visibility. An explicit scan failure is not treated as an empty service list.
-- **A process remains after Stop:** it may take longer to exit, ignore SIGTERM, or be restarted by a supervisor. Refresh first; use Force stop only if appropriate.
-- **Port still occupied:** another process may share the listener or a child may remain. Inspect the updated list; stopping one PID does not prove a port is released.
-- **Directory reveal fails:** verify the directory still exists and a graphical file manager is available.
-- **No browser window:** use `--no-open` and open the printed URL manually on the same machine.
-
-Report reproducible issues at [GitHub Issues](https://github.com/wiseqingyang/port-watch/issues), with sensitive paths and command arguments removed.
-
-## License
-
-[MIT](./LICENSE).
+<p align="center">
+  <a href="https://github.com/wiseqingyang/port-watch/issues">Ideas & bugs</a> ·
+  <a href="./CONTRIBUTING.md">Make it yours</a> ·
+  <a href="./docs/reference.md">Reference</a> ·
+  <a href="./LICENSE">MIT</a>
+</p>

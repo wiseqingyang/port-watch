@@ -20,8 +20,11 @@ try {
   assert.ok(manifest.files.some(file => file.path === 'dist/cli.js'));
   assert.ok(manifest.files.some(file => file.path === 'dist/client/index.html'));
   for (const file of manifest.files) {
-    assert.ok(/^(dist\/(cli\.js|client\/[^.].*)|package\.json|README(?:\.zh-CN)?\.md|LICENSE|CONTRIBUTING\.md|CHANGELOG\.md)$/.test(file.path), `Unexpected npm file: ${file.path}`);
+    assert.ok(/^(dist\/(cli\.js|client\/[^.].*)|package\.json|README(?:\.zh-CN)?\.md|LICENSE|CONTRIBUTING\.md)$/.test(file.path), `Unexpected npm file: ${file.path}`);
     assert.ok(!file.path.endsWith('.map') && !file.path.includes('.env') && !file.path.includes('tsbuildinfo'));
+  }
+  for (const asset of ['favicon.svg', 'brand/mark.svg', 'brand/logo-light.svg', 'brand/logo-dark.svg']) {
+    assert.ok(manifest.files.some(file => file.path === `dist/client/${asset}`), `Missing brand asset: ${asset}`);
   }
   const prefix = path.join(temporary, 'global');
   await exec('npm', ['install', '--global', '--prefix', prefix, '--ignore-scripts', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', path.join(temporary, manifest.filename)], { timeout: 120_000 });

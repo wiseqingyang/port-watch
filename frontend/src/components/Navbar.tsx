@@ -1,7 +1,6 @@
 import { version } from '../../../package.json';
 import React from 'react';
 import {
-  Activity,
   RefreshCw,
   Sun,
   Moon,
@@ -39,19 +38,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* 左侧：Logo 与指标数据 */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs tracking-wider border border-emerald-500/20">
-              <Activity className="w-3.5 h-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
-                  PortWatch
-                </span>
-                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400">
-                  v{version}
-                </span>
-              </div>
-            </div>
+            <img src="/brand/mark.svg" alt="PortWatch" width={36} height={36} className="h-9 w-9 sm:hidden" />
+            <img
+              src={`/brand/logo-${theme}.svg`}
+              alt="PortWatch"
+              width={149}
+              height={36}
+              className="hidden h-9 w-auto shrink-0 sm:block"
+            />
+            <span className="hidden sm:inline text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400">
+              v{version}
+            </span>
           </div>
 
           {/* 紧凑 inline 统计摘要 */}

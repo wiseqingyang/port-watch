@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 164" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">PortWatch</title>
+  <desc id="description">A mint-green pocket terminal with an antenna and two watchful eyes.</desc>
+  <g transform="translate(12 10) scale(1.5)">
+  <path d="M63 26 77 12" fill="none" stroke="#edaa56" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="79" cy="10" r="6" fill="#edaa56"/>
+  <path d="M24 79v8m48-8v8" fill="none" stroke="#28483e" stroke-width="8" stroke-linecap="round"/>
+  <rect x="10" y="23" width="76" height="59" rx="16" fill="#9ce8c5" stroke="#28483e" stroke-width="4"/>
+  <rect x="19" y="32" width="58" height="33" rx="9" fill="#203b33"/>
+  <rect x="31" y="41" width="8" height="14" rx="4" fill="#b8f4d8"/>
+  <rect x="57" y="41" width="8" height="14" rx="4" fill="#b8f4d8"/>
+  <path d="M44 57h8" fill="none" stroke="#b8f4d8" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="27" cy="73" r="4" fill="#edaa56" stroke="#28483e" stroke-width="2"/>
+  <path d="M56 73h3m7 0h3" fill="none" stroke="#28483e" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(190 55) scale(1.65)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round">
+    <path transform="translate(0 0)" d="M0 32V0h12q12 0 12 10T12 20H0" stroke="#f6f1e6"/>
+    <path transform="translate(33 0)" d="M22 22q0-11-11-11T0 22t11 11 11-11Z" stroke="#f6f1e6"/>
+    <path transform="translate(66 0)" d="M0 32V12m0 9q0-10 13-10" stroke="#f6f1e6"/>
+    <path transform="translate(88 0)" d="M7 3v23q0 7 8 7M0 12h17" stroke="#f6f1e6"/>
+    <path transform="translate(116 0)" d="M0 0 7 32 17 11 27 32 34 0" stroke="#9ce8c5"/>
+    <path transform="translate(161 0)" d="M22 32V12m0 10q0-11-11-11T0 22t11 11 11-11" stroke="#9ce8c5"/>
+    <path transform="translate(195 0)" d="M7 3v23q0 7 8 7M0 12h17" stroke="#9ce8c5"/>
+    <path transform="translate(223 0)" d="M21 14q-4-3-10-3Q0 11 0 22t11 11q6 0 10-3" stroke="#9ce8c5"/>
+    <path transform="translate(256 0)" d="M0 0v32m0-10q0-11 10-11t10 11v10" stroke="#9ce8c5"/>
+  </g>
+</svg>

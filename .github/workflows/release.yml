@@ -68,8 +68,19 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           cd "$RUNNER_TEMP"
-          actual=$(npm exec --yes --registry=https://registry.npmjs.org --package="@wiseqingyang/port-watch@$version" -- port-watch --version)
-          test "$actual" = "$version"
+          # A successful publish can take a moment to reach registry read replicas.
+          for attempt in 1 2 3 4 5 6; do
+            if actual=$(npm exec --yes --prefer-online --registry=https://registry.npmjs.org --package="@wiseqingyang/port-watch@$version" -- port-watch --version); then
+              test "$actual" = "$version"
+              exit 0
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "::error::Could not install the published package after six attempts."
+              exit 1
+            fi
+            echo "::warning::Published package is not available yet; retrying in 10 seconds."
+            sleep 10
+          done
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

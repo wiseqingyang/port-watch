@@ -30,7 +30,7 @@ PortWatch was made for these two small frustrations. It groups the services runn
 Run one command. Your browser opens the dashboard:
 
 ```sh
-npx @wiseqingyang/port-watch
+npx @wiseqingyang/port-watch@latest
 ```
 
 You'll need **macOS or Linux** and [Node.js 22.12+](https://nodejs.org/). Windows isn't supported yet.
@@ -57,10 +57,12 @@ sudo apt install lsof procps
 If your registry mirror hasn't picked up the latest release, use the official registry:
 
 ```sh
-npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch
+npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch@latest
 ```
 
 </details>
+
+If `npx` reports `sh: port-watch: command not found` from inside this source checkout, include `@latest` as shown above. Without it, npm can select the local project instead of installing the published package, even when a registry is specified. To run your local source, use `pnpm build && pnpm start`.
 
 ## A little order for your open projects
 

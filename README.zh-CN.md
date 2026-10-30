@@ -30,7 +30,7 @@ PortWatch 就是为这两件小事做的。把本机正在运行的服务按项�
 在终端运行这一行，浏览器就会打开面板：
 
 ```sh
-npx @wiseqingyang/port-watch
+npx @wiseqingyang/port-watch@latest
 ```
 
 需要 **macOS 或 Linux**，以及 [Node.js 22.12+](https://nodejs.org/)。暂不支持 Windows。
@@ -57,10 +57,12 @@ sudo apt install lsof procps
 使用镜像源时，新版本可能还没同步。可以指定官方源：
 
 ```sh
-npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch
+npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch@latest
 ```
 
 </details>
+
+如果在本项目源码目录里运行 `npx` 时提示 `sh: port-watch: command not found`，请像上面一样带上 `@latest`。省略它时，npm 可能选中当前同名项目，而不安装已发布的包；指定 registry 也不会改变这一点。运行本地源码请用 `pnpm build && pnpm start`。
 
 ## 让开着的项目一目了然
 

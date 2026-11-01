@@ -18,3 +18,7 @@ frontend/dist
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Local documentation, requirements, and prompts
+/docs/
+/doc/

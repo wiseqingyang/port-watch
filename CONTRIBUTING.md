@@ -6,7 +6,7 @@ Issues and pull requests are welcome at [wiseqingyang/port-watch](https://github
 
 Use macOS or Linux, Node >=22.12.0, pnpm 9.14.4, and `lsof` / `ps` on PATH. Install dependencies with `pnpm install --frozen-lockfile`, then run `pnpm dev`. Open the private Vite URL printed by the backend. Never commit a session token.
 
-Detailed CLI behavior and the local API live in the [reference](docs/reference.md) ([中文](docs/reference.zh-CN.md)).
+Use `port-watch --help` for CLI options. Keep local documentation, requirements, and prompts under the ignored `docs/` directory; do not commit them.
 
 ## Structure
 

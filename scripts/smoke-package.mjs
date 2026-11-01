@@ -26,6 +26,16 @@ try {
   for (const asset of ['favicon.svg', 'brand/mark.svg', 'brand/logo-light.svg', 'brand/logo-dark.svg']) {
     assert.ok(manifest.files.some(file => file.path === `dist/client/${asset}`), `Missing brand asset: ${asset}`);
   }
+  console.log('Checking npx with a fresh cache and isolated global prefix…');
+  const tarball = path.join(temporary, manifest.filename);
+  const npxOptions = {
+    cwd: temporary,
+    timeout: 120_000,
+    env: { ...process.env, npm_config_prefix: path.join(temporary, 'npx-global') },
+  };
+  const npxArgs = ['--yes', '--cache', path.join(temporary, 'npx-cache'), '--registry=https://registry.npmjs.org', `file:${tarball}`];
+  assert.equal((await exec('npx', [...npxArgs, '--version'], npxOptions)).stdout.trim(), packageMetadata.version);
+  assert.match((await exec('npx', [...npxArgs, '--help'], npxOptions)).stdout, /Usage: port-watch/);
   const prefix = path.join(temporary, 'global');
   await exec('npm', ['install', '--global', '--prefix', prefix, '--ignore-scripts', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', path.join(temporary, manifest.filename)], { timeout: 120_000 });
   const installedRequire = createRequire(path.join(prefix, 'lib/node_modules', packageMetadata.name, 'package.json'));
@@ -43,7 +53,7 @@ try {
   busy.listen(0, '127.0.0.1');
   await once(busy, 'listening');
   const occupiedPort = busy.address().port;
-  child = spawn(bin, ['--no-open', '--port', String(occupiedPort)], { cwd: temporary, stdio: ['ignore', 'pipe', 'pipe'] });
+  child = spawn(bin, ['--no-open', '--port', String(occupiedPort)], { cwd: temporary, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, XDG_CONFIG_HOME: path.join(temporary, 'config') } });
   const sessionUrl = await new Promise((resolve, reject) => {
     let output = '';
     const timer = setTimeout(() => reject(new Error('Installed CLI did not start within 20 seconds.')), 20_000);
@@ -75,7 +85,7 @@ try {
   assert.ok(own?.protectedReason, 'The dashboard must appear as protected in a real OS scan');
   assert.equal((await fetch(origin + '/api/services/kill', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceId: own.id }) })).status, 403);
   assert.equal((await fetch(origin + '/api/services/restart', { method: 'POST', headers })).status, 404);
-  console.log(`Package smoke test passed: ${manifest.files.length} packaged files; installed CLI, port fallback, dashboard assets, authenticated scan, and self-protection verified.`);
+  console.log(`Package smoke test passed: ${manifest.files.length} packaged files; npx, globally installed CLI, port fallback, dashboard assets, authenticated scan, and self-protection verified.`);
 } finally {
   if (child && child.exitCode === null && child.signalCode === null) {
     const exited = once(child, 'exit');

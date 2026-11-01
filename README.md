@@ -86,6 +86,7 @@ Open a service to check its directory, startup command, and resource usage. Make
 
 ## A few things to know
 
+- Star services to save their project directories. Favorites remain accessible when scanning fails, with runtime status marked unknown. Upgrades without a favorites file work normally.
 - Missing a service? Turn off the **Dev / Agent** filter to see all visible TCP listeners.
 - Open the complete link printed in your terminal. After restarting PortWatch, use the new link. Keep that link and personal details in screenshots private.
 - Stop affects only the selected process. Child processes or tools that restart services may keep running.

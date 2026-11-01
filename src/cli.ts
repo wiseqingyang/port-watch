@@ -4,7 +4,8 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import openBrowser from 'open';
 import { createServer } from './server.js';
-import { checkSystemSupport } from './system.js';
+import { defaultFavoritesFile } from './favorites.js';
+import { AppError, checkSystemSupport } from './system.js';
 
 const version = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -35,11 +36,18 @@ export async function runCli(): Promise<void> {
   const options = program.opts();
   if (!['127.0.0.1', '::1'].includes(options.host)) program.error('Only loopback addresses 127.0.0.1 and ::1 are supported.');
   if (options.lang && !['zh', 'en'].includes(options.lang)) program.error('--lang must be zh or en.');
-  if (options.dev && (options.host !== '127.0.0.1' || options.port !== 4999)) program.error('Development mode requires 127.0.0.1:4999 for the Vite proxy.');
-  await checkSystemSupport();
+  if (options.dev && options.host !== '127.0.0.1') program.error('Development mode requires --host 127.0.0.1 for the Vite proxy.');
+  const locale = options.lang || defaultLocale;
+  try { await checkSystemSupport(); }
+  catch (error) {
+    if (!(error instanceof AppError) || !['MISSING_TOOL', 'SCAN_FAILED'].includes(error.code)) throw error;
+    console.warn(locale === 'zh'
+      ? `PortWatch: 暂时无法扫描进程，仍可查看收藏。${error.message}`
+      : `PortWatch: Process scanning is unavailable; saved favorites are still accessible. ${error.message}`);
+  }
   const token = randomBytes(32).toString('hex');
   const devOrigin = options.dev ? 'http://127.0.0.1:5175' : undefined;
-  const app = createServer({ token, host: options.host, devOrigin });
+  const app = createServer({ token, host: options.host, devOrigin, favoritesFile: defaultFavoritesFile() });
   const server = createHttpServer(app);
   server.requestTimeout = 10_000;
   server.headersTimeout = 10_000;
@@ -53,7 +61,6 @@ export async function runCli(): Promise<void> {
     }
   }
   server.on('error', error => { console.error('PortWatch:', error.message); process.exitCode = 1; server.close(); });
-  const locale = options.lang || defaultLocale;
   const origin = devOrigin ?? `http://${options.host === '::1' ? '[::1]' : options.host}:${port}`;
   const url = `${origin}/${options.lang ? `?lang=${locale}` : ''}#token=${token}`;
   console.log(`\n  PortWatch ${version}\n\n  ${locale === 'zh' ? '打开此会话链接（请勿分享）：' : 'Open this private session URL (do not share):'}\n  ${url}\n\n  ${locale === 'zh' ? '按 Ctrl+C 退出' : 'Press Ctrl+C to stop'}\n`);

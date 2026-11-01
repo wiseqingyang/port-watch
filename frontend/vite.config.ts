@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:4999',
+        target: `http://127.0.0.1:${process.env.PORT_WATCH_API_PORT || '4999'}`,
         changeOrigin: true,
       },
     },

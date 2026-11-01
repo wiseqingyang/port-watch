@@ -1,4 +1,4 @@
-import type { ServicesResponse, KillResult } from './types';
+import type { ServicesResponse, KillResult, FavoriteService } from './types';
 
 const sessionKey = 'portwatch_session';
 const incoming = new URLSearchParams(window.location.hash.slice(1)).get('token');
@@ -19,6 +19,10 @@ const messages: Record<string, [string, string]> = {
   SCAN_FAILED: ['扫描失败或超时，请检查系统工具和权限。', 'The scan failed or timed out. Check system tools and permissions.'],
   DIRECTORY_UNAVAILABLE: ['目录已不存在或不在当前服务目录树中。', 'The directory is unavailable or is outside the current service tree.'],
   REVEAL_FAILED: ['无法打开目录，请确认已安装图形文件管理器。', 'Could not open the directory. A graphical file manager is required.'],
+  TERMINAL_FAILED: ['无法打开终端，请确认已安装图形桌面及终端应用。', 'Could not open a terminal for this directory.'],
+  FAVORITES_READ_FAILED: ['无法读取收藏文件，请检查文件权限或内容，已有文件不会被覆盖。', 'Could not read favorites. Check file permissions or contents; the existing file was preserved.'],
+  FAVORITES_WRITE_FAILED: ['收藏未能保存到磁盘，请检查存储目录权限和剩余空间后重试。', 'Favorites could not be saved to disk. Check directory permissions and free space, then retry.'],
+  FAVORITES_BUSY: ['另一个实例正在更新收藏，请稍后重试。', 'Another instance is updating favorites. Please retry shortly.'],
   ACTION_IN_PROGRESS: ['此进程正在停止，请稍候。', 'A stop operation is already in progress.'],
   REQUEST_FAILED: ['请求失败，请确认 PortWatch 仍在运行。', 'Request failed. Check that PortWatch is still running.'],
 };
@@ -44,9 +48,21 @@ async function request<T>(route: string, init: RequestInit = {}): Promise<T> {
 export function fetchServices(signal?: AbortSignal): Promise<ServicesResponse> {
   return request('/services', { signal });
 }
+export function fetchFavorites(signal?: AbortSignal): Promise<{ favorites: FavoriteService[] }> {
+  return request('/favorites', { signal });
+}
 export function killService(serviceId: string, force = false): Promise<KillResult> {
   return request('/services/kill', { method: 'POST', body: JSON.stringify({ serviceId, force }) });
 }
 export function revealPath(targetPath: string): Promise<{ success: boolean }> {
   return request('/services/reveal', { method: 'POST', body: JSON.stringify({ targetPath }) });
+}
+export function openTerminalPath(targetPath: string): Promise<{ success: boolean }> {
+  return request('/services/terminal', { method: 'POST', body: JSON.stringify({ targetPath }) });
+}
+export function addFavoriteService(serviceId: string): Promise<{ favorite: FavoriteService; favorites: FavoriteService[] }> {
+  return request('/favorites', { method: 'POST', body: JSON.stringify({ serviceId }) });
+}
+export function removeFavoriteService(favoriteId: string): Promise<{ success: boolean; favorites: FavoriteService[] }> {
+  return request(`/favorites/${favoriteId}`, { method: 'DELETE' });
 }

@@ -1,1 +1,1 @@
-export type { ServiceCategory, PortService, SystemOverview, ServicesResponse, KillResult } from '../../src/types.js';
+export type { ServiceCategory, PortService, FavoriteService, SystemOverview, ServicesResponse, KillResult } from '../../src/types.js';

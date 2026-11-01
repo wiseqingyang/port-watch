@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readProcesses, processIdentity, protectedReason, type ProcessInfo } from './process-inspector.js';
 import { AppError } from './system.js';
@@ -53,4 +53,55 @@ export async function revealInFileManager(targetPath: string): Promise<void> {
   } catch {
     throw new AppError('REVEAL_FAILED', 'Could not open the directory. A graphical desktop and a file manager are required.');
   }
+}
+
+export async function openInTerminal(targetPath: string, platform: NodeJS.Platform = process.platform): Promise<void> {
+  if (!path.isAbsolute(targetPath) || targetPath.includes('\0')) throw new AppError('BAD_REQUEST', 'An absolute directory path is required.', 400);
+  if (!(await fs.stat(targetPath).catch(() => null))?.isDirectory()) throw new AppError('DIRECTORY_UNAVAILABLE', 'The directory no longer exists or is inaccessible.', 409);
+  if (platform === 'darwin') {
+    try {
+      await execFileAsync('open', ['-a', 'Terminal', targetPath], { timeout: 5000 });
+      return;
+    } catch {
+      throw new AppError('TERMINAL_FAILED', 'Could not open Terminal for this directory.');
+    }
+  }
+  const candidates: [string, string[]][] = [
+    ['x-terminal-emulator', []],
+    ['gnome-terminal', [`--working-directory=${targetPath}`]],
+    ['konsole', ['--workdir', targetPath]],
+    ['xfce4-terminal', [`--working-directory=${targetPath}`]],
+    ['alacritty', ['--working-directory', targetPath]],
+    ['kitty', ['--directory', targetPath]],
+    ['wezterm', ['start', '--cwd', targetPath]],
+    ['xterm', []],
+  ];
+  for (const [executable, args] of candidates) {
+    try {
+      // Terminal windows may live for hours. Wait for process creation, not exit,
+      // and detach them from PortWatch without a timeout that kills the window.
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(executable, args, { cwd: targetPath, detached: true, stdio: 'ignore' });
+        let startupTimer: ReturnType<typeof setTimeout> | undefined;
+        const finish = (error?: Error) => {
+          clearTimeout(startupTimer);
+          child.off('exit', onExit);
+          if (error) reject(error);
+          else resolve();
+        };
+        const onExit = (code: number | null) => finish(code === 0 ? undefined : new Error('Terminal exited during startup.'));
+        child.once('error', finish);
+        child.once('exit', onExit);
+        child.once('spawn', () => {
+          child.unref();
+          // Catch immediate launcher failures, but never terminate a running window.
+          startupTimer = setTimeout(() => finish(), 250);
+        });
+      });
+      return;
+    } catch {
+      // Try next terminal candidate
+    }
+  }
+  throw new AppError('TERMINAL_FAILED', 'Could not open a terminal. A graphical desktop and a terminal emulator are required.');
 }

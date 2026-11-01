@@ -21,7 +21,7 @@ Detailed CLI behavior and the local API live in the [reference](docs/reference.m
 - `src/types.ts`: shared API types, re-exported by the frontend.
 - `frontend/src/`: React UI, session authentication, confirmation dialogs, polling.
 - `tests/`: API, parser, process lifecycle, classification, and redaction regressions.
-- `scripts/smoke-package.mjs`: actual npm pack/install/run verification outside the repository.
+- `scripts/smoke-package.mjs`: actual npm pack/npx/global install/run verification outside the repository, with an isolated npx cache and global prefixes.
 
 ## Before submitting
 

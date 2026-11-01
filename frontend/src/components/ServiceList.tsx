@@ -17,6 +17,8 @@ import {
   Bot,
   Database,
   Terminal,
+  SquareTerminal,
+  Star,
   Radio,
   Cpu,
 } from 'lucide-react';
@@ -41,6 +43,8 @@ interface ServiceListProps {
   onRequestKill: (service: PortService, force?: boolean) => void;
   onOpenDetail: (service: PortService) => void;
   onRevealPath: (path: string) => void;
+  onOpenTerminal: (path: string) => void;
+  onToggleFavorite: (service: PortService) => void;
   actionLoading: boolean;
   viewMode: ViewMode;
   sortMode: SortMode;
@@ -149,6 +153,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
   onRequestKill,
   onOpenDetail,
   onRevealPath,
+  onOpenTerminal,
+  onToggleFavorite,
   actionLoading,
   viewMode,
   sortMode,
@@ -208,6 +214,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
     isLastInGroup = false,
     isNestedInTree = true
   ) => {
+    const unavailable = Boolean(service.isOffline || service.runtimeUnknown);
     const catMeta = CATEGORY_MAP[service.category] || CATEGORY_MAP.system;
     const catLabel = t.categories[service.category] || t.categories.system;
     const cleanFramework = getCleanFramework(service.framework, catLabel);
@@ -257,26 +264,46 @@ export const ServiceList: React.FC<ServiceListProps> = ({
 
           {/* 3. 名字：服务主显示名字 */}
           <span
-            className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors"
+            className={`font-semibold text-xs truncate transition-colors ${
+              unavailable
+                ? 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200'
+                : 'text-zinc-800 dark:text-zinc-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300'
+            }`}
             title={cleanDisplayName}
           >
             {cleanDisplayName}
           </span>
 
-          {/* 4. 端口：监听端口胶囊与外部访问快捷链接 */}
-          <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md font-mono font-semibold text-xs tracking-tight shrink-0">
-            <span>:{service.port}</span>
-            <a
-              href={`http://localhost:${service.port}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={t.list.openUrl(service.port)}
-              onClick={(e) => e.stopPropagation()}
-              className="text-emerald-600/60 dark:text-emerald-400/60 hover:text-emerald-700 dark:hover:text-emerald-200 transition-colors"
-            >
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
+          {/* 4. 端口：监听端口胶囊与外部访问快捷链接（或离线历史端口标识） */}
+          {unavailable ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="bg-zinc-200/70 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-md font-mono font-semibold text-xs tracking-tight">
+                :{service.port}
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200/60 dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400">
+                {service.runtimeUnknown ? t.list.unknownBadge : t.list.offlineBadge}
+              </span>
+              {service.cwdExists === false && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  {t.list.missingDirBadge}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md font-mono font-semibold text-xs tracking-tight shrink-0">
+              <span>:{service.port}</span>
+              <a
+                href={`http://localhost:${service.port}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t.list.openUrl(service.port)}
+                onClick={(e) => e.stopPropagation()}
+                className="text-emerald-600/60 dark:text-emerald-400/60 hover:text-emerald-700 dark:hover:text-emerald-200 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
         </div>
 
         {/* 中间列：启动命令或平铺模式下的工作目录 */}
@@ -301,16 +328,30 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                   <Copy className="w-3 h-3" />
                 )}
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRevealPath(service.cwd!);
-                }}
-                title={t.list.revealInFinder}
-                className="p-1 rounded text-zinc-400 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
-              >
-                <FolderOpen className="w-3 h-3" />
-              </button>
+              {service.cwdExists !== false && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRevealPath(service.cwd!);
+                    }}
+                    title={t.list.revealInFinder}
+                    className="p-1 rounded text-zinc-400 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenTerminal(service.cwd!);
+                    }}
+                    title={t.list.openInTerminal}
+                    className="p-1 rounded text-zinc-400 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <SquareTerminal className="w-3 h-3" />
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <span className="truncate max-w-[280px] text-[11px]" title={service.command}>
@@ -324,30 +365,104 @@ export const ServiceList: React.FC<ServiceListProps> = ({
           className="flex items-center justify-between md:justify-end gap-3 pl-6 md:pl-0 shrink-0 font-mono text-xs"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 运行指标 */}
-          <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500 text-[11px]">
-            <span>PID {service.pid}</span>
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            <span>{service.memoryMb}M</span>
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            <span title={t.list.uptimeTitle(service.uptime)}>{service.uptime}</span>
-          </div>
+          {/* 运行指标 或 离线状态提示 */}
+          {unavailable ? (
+            <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500 text-[11px]">
+              <span>{t.list.lastPortLabel(service.port)}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500 text-[11px]">
+              <span>PID {service.pid}</span>
+              <span className="text-zinc-300 dark:text-zinc-700">·</span>
+              <span>{service.memoryMb}M</span>
+              <span className="text-zinc-300 dark:text-zinc-700">·</span>
+              <span title={t.list.uptimeTitle(service.uptime)}>{service.uptime}</span>
+            </div>
+          )}
 
           {/* 快捷操作组 */}
-          <div className="flex items-center gap-1.5">
-            {/* 关闭服务按钮 */}
+          <div className="flex items-center gap-1">
+            {/* 收藏 / 取消收藏星标按钮 */}
             <button
-              onClick={() => onRequestKill(service, false)}
-              disabled={Boolean(service.protectedReason) || actionLoading}
-              title={protectedReason ? t.list.protectedTitle(protectedReason) : t.list.killTitle}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-red-600 hover:bg-red-500/10 dark:text-zinc-400 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              onClick={() => onToggleFavorite(service)}
+              disabled={Boolean(service.runtimeUnknown && !service.favoriteId)}
+              title={service.favoriteId ? t.list.favoriteRemoveTitle : t.list.favoriteAddTitle}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                service.favoriteId
+                  ? 'text-amber-500 hover:bg-amber-500/10'
+                  : 'text-zinc-400 hover:text-amber-500 hover:bg-amber-500/10 dark:text-zinc-500 dark:hover:text-amber-400'
+              }`}
             >
-              {service.protectedReason ? (
-                <Shield className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
-              ) : (
-                <Power className="w-3.5 h-3.5" />
-              )}
+              <Star
+                className={`w-3.5 h-3.5 ${
+                  service.favoriteId ? 'fill-amber-400 text-amber-500' : ''
+                }`}
+              />
             </button>
+
+            {unavailable ? (
+              <>
+                {/* 离线服务快捷复制启动命令 */}
+                <button
+                  onClick={(e) => handleCopy(e, service.command, `cmd-${service.id}`)}
+                  title={t.list.copyCmd}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  {copiedId === `cmd-${service.id}` ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+
+                {/* 离线服务快捷定位目录与打开终端 */}
+                {service.cwd && service.cwdExists !== false && (
+                  <>
+                    <button
+                      onClick={() => onRevealPath(service.cwd!)}
+                      title={t.list.revealInFinder}
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-emerald-600 hover:bg-emerald-500/10 dark:text-zinc-400 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onOpenTerminal(service.cwd!)}
+                      title={t.list.openInTerminal}
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-emerald-600 hover:bg-emerald-500/10 dark:text-zinc-400 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                    >
+                      <SquareTerminal className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* 在线服务快捷打开终端 */}
+                {service.cwd && (
+                  <button
+                    onClick={() => onOpenTerminal(service.cwd!)}
+                    title={t.list.openInTerminal}
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-emerald-600 hover:bg-emerald-500/10 dark:text-zinc-400 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                  >
+                    <SquareTerminal className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {/* 关闭服务按钮 */}
+                <button
+                  onClick={() => onRequestKill(service, false)}
+                  disabled={Boolean(service.protectedReason) || actionLoading}
+                  title={protectedReason ? t.list.protectedTitle(protectedReason) : t.list.killTitle}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-red-600 hover:bg-red-500/10 dark:text-zinc-400 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                >
+                  {service.protectedReason ? (
+                    <Shield className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600" />
+                  ) : (
+                    <Power className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </>
+            )}
 
             {/* 详情箭头 */}
             <button
@@ -491,6 +606,17 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                   className="p-1 rounded text-zinc-400 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/60 opacity-60 group-hover/header:opacity-100 transition-all cursor-pointer"
                 >
                   <FolderOpen className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenTerminal(node.fullPath);
+                  }}
+                  title={t.list.openTerminalDir}
+                  className="p-1 rounded text-zinc-400 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/60 opacity-60 group-hover/header:opacity-100 transition-all cursor-pointer"
+                >
+                  <SquareTerminal className="w-3 h-3" />
                 </button>
               </div>
             </div>

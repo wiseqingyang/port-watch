@@ -56,6 +56,55 @@ export interface PortService {
   uptimeSec: number;
   /** 不可关闭的原因提示（如为系统核心进程） */
   protectedReason?: string;
+  /** 若该服务已收藏（或为离线收藏项），对应的收藏 ID */
+  favoriteId?: string;
+  /** 是否为当前未运行的离线收藏服务 */
+  isOffline?: boolean;
+  /** 最近一次扫描失败或尚未完成，不能确定当前运行状态 */
+  runtimeUnknown?: boolean;
+  /** 离线收藏服务上次在线时间戳 */
+  lastSeenAt?: number;
+  /** 工作目录在磁盘上是否依然存在 */
+  cwdExists?: boolean;
+}
+
+export interface FavoriteService {
+  /** 收藏项唯一标识 (基于 cwd + processName + framework + command 哈希生成) */
+  favoriteId: string;
+  /** 收藏创建时间 */
+  createdAt: number;
+  /** 最近一次监测到在线的时间戳 */
+  lastSeenAt: number;
+  /** 工作目录 (CWD) */
+  cwd: string | null;
+  /** 项目信息 */
+  project: {
+    name: string;
+    path: string;
+    version?: string;
+    description?: string;
+  } | null;
+  /** 可执行进程名 */
+  processName: string;
+  /** 脱敏后的启动命令 */
+  command: string;
+  commandRedacted: boolean;
+  /** 服务分类 */
+  category: ServiceCategory;
+  /** 识别出的具体框架或服务名 */
+  framework: string;
+  /** 友好的服务显示标题 */
+  displayName: string;
+  /** 是否属于开发 / Agent 服务 */
+  isDevOrAgent: boolean;
+  /** 上次监听的主要端口 */
+  lastPort: number;
+  /** 上次监听的所有端口列表 */
+  lastPorts: number[];
+  /** 协议 */
+  protocol: 'tcp' | 'udp';
+  /** 工作目录在磁盘上是否依然存在 */
+  cwdExists?: boolean;
 }
 
 export interface SystemOverview {

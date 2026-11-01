@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, SlidersHorizontal, X, FolderTree, List } from 'lucide-react';
+import { Search, Sparkles, SlidersHorizontal, X, FolderTree, List, Star } from 'lucide-react';
 import type { SystemOverview } from '../types.js';
 import type { SortMode, ViewMode } from '../utils/grouping.js';
 import { useI18n } from '../i18n.js';
@@ -12,6 +12,9 @@ interface FilterBarProps {
   onSelectCategory: (cat: string) => void;
   devOnly: boolean;
   onToggleDevOnly: (val: boolean) => void;
+  favoritesOnly: boolean;
+  onToggleFavoritesOnly: (val: boolean) => void;
+  favoritesCount: number;
   searchQuery: string;
   onChangeSearch: (val: string) => void;
   sortMode: SortMode;
@@ -26,6 +29,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onSelectCategory,
   devOnly,
   onToggleDevOnly,
+  favoritesOnly,
+  onToggleFavoritesOnly,
+  favoritesCount,
   searchQuery,
   onChangeSearch,
   sortMode,
@@ -99,6 +105,29 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <span>{t.filter.flatView}</span>
             </button>
           </div>
+
+          {/* 收藏夹专属开关 */}
+          <button
+            onClick={() => onToggleFavoritesOnly(!favoritesOnly)}
+            title={t.filter.favoritesBtnTitle}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+              favoritesOnly
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                : 'bg-white dark:bg-zinc-950/70 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+            }`}
+          >
+            <Star
+              className={`w-3.5 h-3.5 ${
+                favoritesOnly || favoritesCount > 0
+                  ? 'text-amber-500 fill-amber-500/30'
+                  : 'text-zinc-400'
+              }`}
+            />
+            <span>{t.filter.favoritesBtn}</span>
+            <span className="text-[10px] font-mono opacity-80">
+              ({favoritesCount})
+            </span>
+          </button>
 
           {/* 仅看开发/Agent服务专属开关 */}
           <button

@@ -21,6 +21,10 @@ Find what's using your port. Find your still-running demo.
 
 PortWatch was made for these two small frustrations. It groups the services running on your machine by project: search `3000` to see what's using it, or find a familiar project folder and follow its port link to pick up where you left off.
 
+![PortWatch dark directory view showing six services across three demo projects](assets/screenshots/overview-en.png)
+
+<p align="center"><sub>Real UI, fictional demo projects. English / 中文. Light / dark.</sub></p>
+
 ## Get started
 
 Run one command. Your browser opens the dashboard:
@@ -70,9 +74,15 @@ If `npx` reports `sh: port-watch: command not found` from inside this source che
 
 Prefer one tidy list? Switch to the flat view and sort by port, memory, or start time. Language and light/dark controls are always in the top-right corner.
 
+![PortWatch light list view with ports, project directories, and resource usage side by side](assets/screenshots/list-en.png)
+
 ## Take a look before you stop it
 
 Open a service to check its directory, startup command, and resource usage. Make sure it's the one you meant, then stop it.
+
+<p align="center">
+  <img src="assets/screenshots/detail-en.png" alt="Details for the demo notes-web service, with its port, memory, directory, and stop button" width="600">
+</p>
 
 ## A few things to know
 

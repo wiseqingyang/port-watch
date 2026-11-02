@@ -21,6 +21,10 @@
 
 PortWatch 就是为这两件小事做的。把本机正在运行的服务按项目摆在一起：搜 `3000`，看看是谁占着；找到熟悉的项目目录，点开端口链接，继续上次的 demo。
 
+![PortWatch 深色目录视图：三个示例项目中的六个运行服务](assets/screenshots/overview-zh.png)
+
+<p align="center"><sub>实际界面，使用虚构项目数据。支持中文 / English、深色 / 浅色。</sub></p>
+
 ## 开始使用
 
 在终端运行这一行，浏览器就会打开面板：
@@ -70,9 +74,15 @@ npx --registry=https://registry.npmjs.org @wiseqingyang/port-watch@latest
 
 想直接扫一眼所有服务？切到平铺列表，按端口、内存或启动时间排序。右上角可以切换语言和深浅主题。
 
+![PortWatch 浅色平铺列表：端口、项目目录和资源用量并排显示](assets/screenshots/list-zh.png)
+
 ## 关之前，先看清楚
 
 点开服务，看看它的目录、启动命令和资源占用。确认是自己要关的那个，再动手。
+
+<p align="center">
+  <img src="assets/screenshots/detail-zh.png" alt="notes-web 示例服务详情：端口、内存、目录和停止按钮" width="600">
+</p>
 
 ## 几个小提示
 

@@ -8,6 +8,8 @@ Use macOS or Linux, Node >=22.12.0, pnpm 9.14.4, and `lsof` / `ps` on PATH. Inst
 
 Use `port-watch --help` for CLI options. Keep local documentation, requirements, and prompts under the ignored `docs/` directory; do not commit them.
 
+Keep public screenshots used in the READMEs under `assets/screenshots/`, using synthetic project data. Keep development and test verification screenshots under the ignored `docs/` directory.
+
 ## Structure
 
 - `src/bin.ts`: executable entry, independent of the filename used by npm's symlink.

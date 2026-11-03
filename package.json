@@ -1,6 +1,6 @@
 {
   "name": "@wiseqingyang/port-watch",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Inspect local TCP listeners by project directory and stop selected processes on macOS and Linux.",
   "type": "module",
   "bin": {

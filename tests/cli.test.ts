@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFavoritesStore } from '../src/favorites.js';
+import { defaultInstanceDirectory } from '../src/single-instance.js';
 import { service } from './fixtures.js';
 
 test('CLI still opens the favorites dashboard when scanning tools are missing', { timeout: 20_000 }, async t => {
@@ -19,7 +20,7 @@ test('CLI still opens the favorites dashboard when scanning tools are missing', 
   await new Promise<void>(resolve => reservation.close(() => resolve()));
   const child = spawn(process.execPath, ['--import', 'tsx', 'src/bin.ts', '--no-open', '--lang', 'en', '--port', String(port)], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
-    env: { ...process.env, PATH: '', XDG_CONFIG_HOME: config }, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, PATH: '', HOME: config, XDG_CONFIG_HOME: config }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stderr = '';
   child.stderr.on('data', chunk => { stderr += chunk; });
@@ -31,6 +32,7 @@ test('CLI still opens the favorites dashboard when scanning tools are missing', 
       await stopped;
       clearTimeout(timer);
     }
+    await rm(defaultInstanceDirectory(config), { recursive: true, force: true });
     await rm(config, { recursive: true, force: true });
   });
   const url = await new Promise<URL>((resolve, reject) => {

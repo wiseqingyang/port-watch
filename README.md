@@ -86,6 +86,7 @@ Open a service to check its directory, startup command, and resource usage. Make
 
 ## A few things to know
 
+- Only one instance runs per user. Repeating the command (even from another project or with a different port) reports the running instance and exits successfully. Stop it with Ctrl+C before changing startup options. After a crash or forced stop, the next launch recovers automatically.
 - Star services to save their project directories. Favorites remain accessible when scanning fails, with runtime status marked unknown. Upgrades without a favorites file work normally.
 - Missing a service? Turn off the **Dev / Agent** filter to see all visible TCP listeners.
 - Open the complete link printed in your terminal. After restarting PortWatch, use the new link. Keep that link and personal details in screenshots private.

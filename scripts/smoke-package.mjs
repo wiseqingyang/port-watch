@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -53,7 +54,7 @@ try {
   busy.listen(0, '127.0.0.1');
   await once(busy, 'listening');
   const occupiedPort = busy.address().port;
-  child = spawn(bin, ['--no-open', '--port', String(occupiedPort)], { cwd: temporary, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, XDG_CONFIG_HOME: path.join(temporary, 'config') } });
+  child = spawn(bin, ['--no-open', '--port', String(occupiedPort)], { cwd: temporary, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, HOME: temporary, XDG_CONFIG_HOME: path.join(temporary, 'config') } });
   const sessionUrl = await new Promise((resolve, reject) => {
     let output = '';
     const timer = setTimeout(() => reject(new Error('Installed CLI did not start within 20 seconds.')), 20_000);
@@ -66,6 +67,9 @@ try {
     });
   });
   assert.notEqual(Number(sessionUrl.port), occupiedPort, 'Occupied ports must be retried with a real listen');
+  const duplicate = await exec(bin, ['--no-open', '--port', String(occupiedPort + 1)], { ...options, env: { ...process.env, HOME: temporary } });
+  assert.ok(duplicate.stdout.includes(`already running (PID: ${child.pid})`));
+  assert.ok(!duplicate.stdout.includes('#token='));
   const token = new URLSearchParams(sessionUrl.hash.slice(1)).get('token');
   const origin = sessionUrl.origin;
   const page = await fetch(origin);
@@ -85,7 +89,7 @@ try {
   assert.ok(own?.protectedReason, 'The dashboard must appear as protected in a real OS scan');
   assert.equal((await fetch(origin + '/api/services/kill', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceId: own.id }) })).status, 403);
   assert.equal((await fetch(origin + '/api/services/restart', { method: 'POST', headers })).status, 404);
-  console.log(`Package smoke test passed: ${manifest.files.length} packaged files; npx, globally installed CLI, port fallback, dashboard assets, authenticated scan, and self-protection verified.`);
+  console.log(`Package smoke test passed: ${manifest.files.length} packaged files; npx, globally installed CLI, single-instance behavior, port fallback, dashboard assets, authenticated scan, and self-protection verified.`);
 } finally {
   if (child && child.exitCode === null && child.signalCode === null) {
     const exited = once(child, 'exit');
@@ -95,5 +99,7 @@ try {
     clearTimeout(timer);
   }
   if (busy) await new Promise(resolve => busy.close(resolve));
+  const homeHash = createHash('sha256').update(temporary).digest('hex').slice(0, 16);
+  await rm(`/tmp/port-watch-${process.getuid()}-${homeHash}`, { recursive: true, force: true });
   await rm(temporary, { recursive: true, force: true });
 }

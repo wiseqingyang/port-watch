@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import openBrowser from 'open';
 import { createServer } from './server.js';
 import { defaultFavoritesFile } from './favorites.js';
+import { acquireInstance } from './single-instance.js';
 import { AppError, checkSystemSupport } from './system.js';
 
 const version = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
@@ -38,40 +39,67 @@ export async function runCli(): Promise<void> {
   if (options.lang && !['zh', 'en'].includes(options.lang)) program.error('--lang must be zh or en.');
   if (options.dev && options.host !== '127.0.0.1') program.error('Development mode requires --host 127.0.0.1 for the Vite proxy.');
   const locale = options.lang || defaultLocale;
-  try { await checkSystemSupport(); }
-  catch (error) {
-    if (!(error instanceof AppError) || !['MISSING_TOOL', 'SCAN_FAILED'].includes(error.code)) throw error;
-    console.warn(locale === 'zh'
-      ? `PortWatch: 暂时无法扫描进程，仍可查看收藏。${error.message}`
-      : `PortWatch: Process scanning is unavailable; saved favorites are still accessible. ${error.message}`);
+  const instance = await acquireInstance();
+  if (!instance.acquired) {
+    const pid = instance.pid ? ` (PID: ${instance.pid})` : '';
+    console.log(locale === 'zh'
+      ? `PortWatch 已在运行${pid}。请使用已有面板，或先退出原实例。`
+      : `PortWatch is already running${pid}. Use the existing dashboard or stop that instance first.`);
+    return;
   }
-  const token = randomBytes(32).toString('hex');
-  const devOrigin = options.dev ? 'http://127.0.0.1:5175' : undefined;
-  const app = createServer({ token, host: options.host, devOrigin, favoritesFile: defaultFavoritesFile() });
-  const server = createHttpServer(app);
-  server.requestTimeout = 10_000;
-  server.headersTimeout = 10_000;
-  let port = options.port as number;
-  const lastPort = options.dev ? port : Math.min(65535, port + 100);
-  while (true) {
-    try { await listen(server, port, options.host); break; }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE' || port === lastPort) throw error;
-      port++;
-    }
-  }
-  server.on('error', error => { console.error('PortWatch:', error.message); process.exitCode = 1; server.close(); });
-  const origin = devOrigin ?? `http://${options.host === '::1' ? '[::1]' : options.host}:${port}`;
-  const url = `${origin}/${options.lang ? `?lang=${locale}` : ''}#token=${token}`;
-  console.log(`\n  PortWatch ${version}\n\n  ${locale === 'zh' ? '打开此会话链接（请勿分享）：' : 'Open this private session URL (do not share):'}\n  ${url}\n\n  ${locale === 'zh' ? '按 Ctrl+C 退出' : 'Press Ctrl+C to stop'}\n`);
+  let server: Server | undefined;
   let closing = false;
   const exit = () => {
     if (closing) return;
     closing = true;
-    server.close(() => { process.exitCode = 0; });
-    server.closeAllConnections();
+    const release = () => {
+      process.off('SIGINT', exit);
+      process.off('SIGTERM', exit);
+      void instance.release().catch(error => {
+        console.error('PortWatch:', error.message);
+        process.exitCode = 1;
+      });
+    };
+    if (server?.listening) {
+      server.close(release);
+      server.closeAllConnections();
+    } else release();
   };
   process.once('SIGINT', exit);
   process.once('SIGTERM', exit);
-  if (options.open !== false) await openBrowser(url).catch(() => {});
+  try {
+    try { await checkSystemSupport(); }
+    catch (error) {
+      if (!(error instanceof AppError) || !['MISSING_TOOL', 'SCAN_FAILED'].includes(error.code)) throw error;
+      console.warn(locale === 'zh'
+        ? `PortWatch: 暂时无法扫描进程，仍可查看收藏。${error.message}`
+        : `PortWatch: Process scanning is unavailable; saved favorites are still accessible. ${error.message}`);
+    }
+    const token = randomBytes(32).toString('hex');
+    const devOrigin = options.dev ? 'http://127.0.0.1:5175' : undefined;
+    const app = createServer({ token, host: options.host, devOrigin, favoritesFile: defaultFavoritesFile() });
+    if (closing) return;
+    server = createHttpServer(app);
+    server.requestTimeout = 10_000;
+    server.headersTimeout = 10_000;
+    let port = options.port as number;
+    const lastPort = options.dev ? port : Math.min(65535, port + 100);
+    while (true) {
+      if (closing) return;
+      try { await listen(server, port, options.host); break; }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE' || port === lastPort) throw error;
+        port++;
+      }
+    }
+    server.on('error', error => { console.error('PortWatch:', error.message); process.exitCode = 1; exit(); });
+    if (closing) { server.close(); server.closeAllConnections(); return; }
+    const origin = devOrigin ?? `http://${options.host === '::1' ? '[::1]' : options.host}:${port}`;
+    const url = `${origin}/${options.lang ? `?lang=${locale}` : ''}#token=${token}`;
+    console.log(`\n  PortWatch ${version}\n\n  ${locale === 'zh' ? '打开此会话链接（请勿分享）：' : 'Open this private session URL (do not share):'}\n  ${url}\n\n  ${locale === 'zh' ? '按 Ctrl+C 退出' : 'Press Ctrl+C to stop'}\n`);
+    if (options.open !== false) await openBrowser(url).catch(() => {});
+  } catch (error) {
+    exit();
+    throw error;
+  }
 }

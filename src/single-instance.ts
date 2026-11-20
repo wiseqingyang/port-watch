@@ -3,6 +3,7 @@ import { lstat, mkdir, unlink } from 'node:fs/promises';
 import { createConnection, createServer } from 'node:net';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import lockfile from 'proper-lockfile';
 
 export function defaultInstanceDirectory(homeDirectory = homedir()): string {
@@ -12,15 +13,28 @@ export function defaultInstanceDirectory(homeDirectory = homedir()): string {
   return `/tmp/port-watch-${process.getuid!()}-${home}`;
 }
 
-type Instance = { acquired: true; release: () => Promise<void> }
-  | { acquired: false; pid?: number };
+type RunningInstance = { pid?: number; url?: string; starting?: boolean };
+type Instance = { acquired: true; setSessionUrl: (url: string) => void; release: () => Promise<void> }
+  | ({ acquired: false } & RunningInstance);
 
-async function probe(socketPath: string): Promise<{ pid?: number } | undefined> {
+function parseReply(data: string): RunningInstance {
+  // Older instances reply with just a PID. Only open URLs in the format our CLI generates.
+  const match = /^(\d+)(?: (\S+))?\n$/.exec(data);
+  if (!match) return {};
+  const pid = Number(match[1]);
+  const value = match[2];
+  if (value === 'starting') return { pid, starting: true };
+  const sessionUrl = /^http:\/\/(?:127\.0\.0\.1|\[::1\]):\d{1,5}\/(?:\?lang=(?:en|zh))?#token=[a-f\d]{64}$/;
+  if (value && sessionUrl.test(value)) return { pid, url: value };
+  return { pid };
+}
+
+async function probe(socketPath: string): Promise<RunningInstance | undefined> {
   return new Promise((resolve, reject) => {
     const socket = createConnection(socketPath);
     let connected = false;
     let data = '';
-    const finish = (value: { pid?: number } | undefined, error?: Error) => {
+    const finish = (value: RunningInstance | undefined, error?: Error) => {
       clearTimeout(timer);
       socket.destroy();
       if (error) reject(error);
@@ -32,8 +46,8 @@ async function probe(socketPath: string): Promise<{ pid?: number } | undefined> 
     socket.once('connect', () => { connected = true; });
     socket.on('data', chunk => {
       data += chunk.toString();
-      if (data.length > 32) finish({});
-      else if (data.includes('\n')) finish(/^\d+\n$/.test(data) ? { pid: Number(data.trim()) } : {});
+      if (data.length > 256) finish({});
+      else if (data.includes('\n')) finish(parseReply(data));
     });
     socket.once('end', () => finish({}));
     socket.once('error', (error: NodeJS.ErrnoException) => {
@@ -58,10 +72,11 @@ export async function acquireInstance(directory = defaultInstanceDirectory()): P
     stale: 5000,
     retries: { retries: 70, factor: 1, minTimeout: 100, maxTimeout: 100 },
   });
+  let sessionUrl: string | undefined;
   const server = createServer(socket => {
     socket.on('error', () => {});
     socket.setTimeout(1000, () => socket.destroy());
-    socket.end(`${process.pid}\n`);
+    socket.end(`${process.pid} ${sessionUrl ?? 'starting'}\n`);
   });
   const release = () => new Promise<void>((resolve, reject) => {
     if (!server.listening) { resolve(); return; }
@@ -69,7 +84,8 @@ export async function acquireInstance(directory = defaultInstanceDirectory()): P
   });
   try {
     const existing = await probe(socketPath);
-    if (existing) return { acquired: false, ...existing };
+    // Returning the promise lets finally release the lock before this wait finishes.
+    if (existing) return waitForSession(existing, socketPath);
     await unlink(socketPath).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
     });
@@ -80,9 +96,20 @@ export async function acquireInstance(directory = defaultInstanceDirectory()): P
     // The dashboard owns process lifetime. Normal shutdown explicitly releases
     // this socket; abnormal exits are recovered on the next launch.
     server.unref();
-    return { acquired: true, release };
+    return { acquired: true, setSessionUrl(url) { sessionUrl = url; }, release };
   } finally {
     try { await unlock(); }
     catch (error) { await release(); throw error; }
   }
+}
+
+async function waitForSession(owner: RunningInstance, socketPath: string): Promise<Instance> {
+  const deadline = Date.now() + 12_000;
+  while (owner.starting && Date.now() < deadline) {
+    await delay(100);
+    const next = await probe(socketPath);
+    if (!next) return acquireInstance(path.dirname(socketPath));
+    owner = next;
+  }
+  return { acquired: false, ...owner };
 }

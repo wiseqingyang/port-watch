@@ -39,12 +39,19 @@ export async function runCli(): Promise<void> {
   if (options.lang && !['zh', 'en'].includes(options.lang)) program.error('--lang must be zh or en.');
   if (options.dev && options.host !== '127.0.0.1') program.error('Development mode requires --host 127.0.0.1 for the Vite proxy.');
   const locale = options.lang || defaultLocale;
+  const linkPrompt = locale === 'zh' ? '打开此会话链接（请勿分享）：' : 'Open this private session URL (do not share):';
   const instance = await acquireInstance();
   if (!instance.acquired) {
     const pid = instance.pid ? ` (PID: ${instance.pid})` : '';
-    console.log(locale === 'zh'
-      ? `PortWatch 已在运行${pid}。请使用已有面板，或先退出原实例。`
-      : `PortWatch is already running${pid}. Use the existing dashboard or stop that instance first.`);
+    console.log(locale === 'zh' ? `PortWatch 已在运行${pid}。` : `PortWatch is already running${pid}.`);
+    if (instance.url) {
+      console.log(`\n  ${linkPrompt}\n  ${instance.url}\n`);
+      if (options.open !== false) await openBrowser(instance.url).catch(() => {});
+    } else {
+      console.log(locale === 'zh'
+        ? '可以继续使用原来的浏览器标签页，或从首次启动的终端复制带 #token= 的完整链接。如果面板正在启动，请稍后再运行一次命令。'
+        : 'Use the original browser tab or copy the full link containing #token= from the terminal that started PortWatch. If the dashboard is starting, run this command again shortly.');
+    }
     return;
   }
   let server: Server | undefined;
@@ -96,7 +103,8 @@ export async function runCli(): Promise<void> {
     if (closing) { server.close(); server.closeAllConnections(); return; }
     const origin = devOrigin ?? `http://${options.host === '::1' ? '[::1]' : options.host}:${port}`;
     const url = `${origin}/${options.lang ? `?lang=${locale}` : ''}#token=${token}`;
-    console.log(`\n  PortWatch ${version}\n\n  ${locale === 'zh' ? '打开此会话链接（请勿分享）：' : 'Open this private session URL (do not share):'}\n  ${url}\n\n  ${locale === 'zh' ? '按 Ctrl+C 退出' : 'Press Ctrl+C to stop'}\n`);
+    instance.setSessionUrl(url);
+    console.log(`\n  PortWatch ${version}\n\n  ${linkPrompt}\n  ${url}\n\n  ${locale === 'zh' ? '按 Ctrl+C 退出' : 'Press Ctrl+C to stop'}\n`);
     if (options.open !== false) await openBrowser(url).catch(() => {});
   } catch (error) {
     exit();

@@ -69,7 +69,7 @@ try {
   assert.notEqual(Number(sessionUrl.port), occupiedPort, 'Occupied ports must be retried with a real listen');
   const duplicate = await exec(bin, ['--no-open', '--port', String(occupiedPort + 1)], { ...options, env: { ...process.env, HOME: temporary } });
   assert.ok(duplicate.stdout.includes(`already running (PID: ${child.pid})`));
-  assert.ok(!duplicate.stdout.includes('#token='));
+  assert.ok(duplicate.stdout.includes(sessionUrl.href), 'Duplicate must return the working URL on the actual fallback port');
   const token = new URLSearchParams(sessionUrl.hash.slice(1)).get('token');
   const origin = sessionUrl.origin;
   const page = await fetch(origin);

@@ -23,7 +23,7 @@ function launch(home: string, args: string[] = [], cwd = home) {
   const ready = new Promise<'started' | 'exited'>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`CLI timed out: ${output} ${errors}`)), 12_000);
     child.stdout.on('data', () => {
-      if (output.includes('#token=')) { clearTimeout(timer); resolve('started'); }
+      if (output.includes('Press Ctrl+C to stop')) { clearTimeout(timer); resolve('started'); }
     });
     child.once('exit', () => { clearTimeout(timer); resolve('exited'); });
     child.once('error', error => { clearTimeout(timer); reject(error); });
@@ -60,11 +60,13 @@ test('simultaneous CLI launches share one instance across directories, ports and
   const states = await Promise.all(first.map(instance => instance.ready));
   assert.equal(states.filter(state => state === 'started').length, 1);
   const winner = first[states.indexOf('started')];
+  const url = winner.output().match(/http:\/\/[^\s]+#token=[a-f\d]{64}/)?.[0];
+  assert.ok(url);
   for (const instance of first.filter(instance => instance !== winner)) {
     await instance.exited;
     assert.equal(instance.child.exitCode, 0, instance.errors());
     assert.match(instance.output(), new RegExp(`already running \\(PID: ${winner.child.pid}\\)`));
-    assert.doesNotMatch(instance.output(), /#token=/);
+    assert.ok(instance.output().includes(url), 'Duplicate must print the original private URL');
     assert.equal(instance.errors(), '', 'Duplicates should exit before scanning');
   }
   const help = run(['--help']);
@@ -74,6 +76,7 @@ test('simultaneous CLI launches share one instance across directories, ports and
   const chinese = run(['--lang', 'zh', '--dev']);
   assert.equal(await chinese.ready, 'exited');
   assert.match(chinese.output(), /已在运行/);
+  assert.ok(chinese.output().includes(url));
 
   // A paused owner cannot reply with its PID, but still must not lose ownership.
   winner.child.kill('SIGSTOP');
@@ -119,8 +122,39 @@ test('recovers an abandoned startup mutex and serializes contenders', async t =>
   await mkdir(lock);
   const old = new Date(Date.now() - 20_000);
   await utimes(lock, old, old);
-  const results = await Promise.all(Array.from({ length: 4 }, () => acquireInstance(directory)));
+  const results = await Promise.all(Array.from({ length: 4 }, async () => {
+    const instance = await acquireInstance(directory);
+    if (instance.acquired) instance.setSessionUrl(`http://127.0.0.1:4999/#token=${'a'.repeat(64)}`);
+    return instance;
+  }));
   for (const instance of results) if (instance.acquired) owners.push(instance.release);
   assert.equal(results.filter(instance => instance.acquired).length, 1);
   for (const instance of results) if (!instance.acquired) assert.equal(instance.pid, process.pid);
+});
+
+test('duplicate can recover a session that is still starting and gives directions for v1.2.0', async t => {
+  const home = await mkdtemp('/tmp/pw-resume-test-');
+  const directory = defaultInstanceDirectory(home);
+  await mkdir(directory, { mode: 0o700 });
+  const sessionUrl = `http://[::1]:5100/?lang=zh#token=${'a'.repeat(64)}`;
+  const pid = process.pid;
+  let replies = [`${pid} starting`, `${pid} ${sessionUrl}`];
+  const owner = createServer(socket => socket.end(`${replies.shift()}\n`));
+  owner.listen(`${directory}/instance.sock`);
+  await once(owner, 'listening');
+  t.after(async () => {
+    await new Promise<void>(resolve => owner.close(() => resolve()));
+    await rm(directory, { recursive: true, force: true });
+    await rm(home, { recursive: true, force: true });
+  });
+  const starting = launch(home);
+  t.after(() => stop(starting.child));
+  assert.equal(await starting.ready, 'exited');
+  assert.ok(starting.output().includes(sessionUrl));
+  replies = [String(pid)];
+  const legacy = launch(home);
+  t.after(() => stop(legacy.child));
+  assert.equal(await legacy.ready, 'exited');
+  assert.match(legacy.output(), /original browser tab or copy the full link/);
+  assert.doesNotMatch(legacy.output(), /https?:\/\//);
 });
